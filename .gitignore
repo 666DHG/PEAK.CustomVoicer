@@ -1,0 +1,7 @@
+bin/
+obj/
+.vs/
+Config.Build.user.props
+*.user
+
+.cursor_chat
