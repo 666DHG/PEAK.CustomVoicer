@@ -103,6 +103,7 @@ internal static class EmoteWheelInitWheelPatch
 internal static class EmoteWheelSliceInitPatch
 {
     private const string LabelObjectName = "CustomVoicerLabel";
+    private static TMP_FontAsset? _fallbackFont;
 
     private static void Postfix(EmoteWheelSlice __instance, EmoteWheelData data, EmoteWheel wheel)
     {
@@ -131,29 +132,33 @@ internal static class EmoteWheelSliceInitPatch
                 return;
             }
 
-            var existing = __instance.transform.Find(LabelObjectName);
-            if (existing != null)
-            {
-                return;
-            }
-
             if (__instance.image != null)
             {
                 __instance.image.gameObject.SetActive(false);
             }
 
-            var labelObject = new GameObject(LabelObjectName);
-            labelObject.transform.SetParent(__instance.transform, false);
+            var existing = __instance.transform.Find(LabelObjectName);
+            var labelObject = existing != null ? existing.gameObject : new GameObject(LabelObjectName);
+            if (existing == null)
+            {
+                labelObject.transform.SetParent(__instance.transform, false);
+            }
 
-            var text = labelObject.AddComponent<TextMeshProUGUI>();
+            var text = labelObject.GetComponent<TextMeshProUGUI>() ?? labelObject.AddComponent<TextMeshProUGUI>();
             text.text = label;
-            text.fontSize = 24f;
-            text.color = Color.white;
+            ApplyGameTextStyle(text, wheel, label);
+            text.fontSize = 34f;
+            text.fontSizeMin = 18f;
+            text.fontSizeMax = 38f;
+            text.enableAutoSizing = true;
+            text.color = new Color(0.12f, 0.10f, 0.08f, 1f);
             text.alignment = TextAlignmentOptions.Center;
-            text.fontStyle = FontStyles.Bold;
-            text.outlineColor = Color.black;
-            text.outlineWidth = 0.4f;
-            text.textWrappingMode = TextWrappingModes.NoWrap;
+            text.fontStyle = FontStyles.Bold | FontStyles.UpperCase;
+            text.outlineColor = new Color(1f, 0.96f, 0.82f, 1f);
+            text.outlineWidth = 0.24f;
+            text.textWrappingMode = TextWrappingModes.Normal;
+            text.overflowMode = TextOverflowModes.Ellipsis;
+            text.raycastTarget = false;
 
             var rect = text.GetComponent<RectTransform>();
             if (__instance.image != null)
@@ -161,7 +166,7 @@ internal static class EmoteWheelSliceInitPatch
                 var imageRect = __instance.image.GetComponent<RectTransform>();
                 rect.anchorMin = imageRect.anchorMin;
                 rect.anchorMax = imageRect.anchorMax;
-                rect.sizeDelta = imageRect.sizeDelta * 1.15f;
+                rect.sizeDelta = imageRect.sizeDelta * 1.45f;
                 rect.anchoredPosition = imageRect.anchoredPosition;
                 rect.localScale = imageRect.localScale;
             }
@@ -169,13 +174,77 @@ internal static class EmoteWheelSliceInitPatch
             {
                 rect.anchorMin = new Vector2(0.5f, 0.5f);
                 rect.anchorMax = new Vector2(0.5f, 0.5f);
-                rect.sizeDelta = new Vector2(100f, 40f);
+                rect.sizeDelta = new Vector2(140f, 56f);
             }
         }
         catch (Exception ex)
         {
             Plugin.Log.LogError($"Voice wheel slice init failed: {ex.Message}");
         }
+    }
+
+    private static void ApplyGameTextStyle(TextMeshProUGUI text, EmoteWheel wheel, string label)
+    {
+        var template = wheel.selectedEmoteName;
+        var font = ResolveFont(template?.font, label);
+        if (font != null)
+        {
+            text.font = font;
+        }
+
+        if (template?.fontSharedMaterial != null && text.font == template.font)
+        {
+            text.fontSharedMaterial = template.fontSharedMaterial;
+        }
+    }
+
+    private static TMP_FontAsset? ResolveFont(TMP_FontAsset? preferred, string label)
+    {
+        if (CanRender(preferred, label))
+        {
+            return preferred;
+        }
+
+        if (CanRender(_fallbackFont, label))
+        {
+            return _fallbackFont;
+        }
+
+        foreach (var font in Resources.FindObjectsOfTypeAll<TMP_FontAsset>())
+        {
+            if (CanRender(font, label))
+            {
+                _fallbackFont = font;
+                Plugin.Log.LogInfo($"Using TMP font '{font.name}' for custom voice labels.");
+                return font;
+            }
+        }
+
+        Plugin.Log.LogWarning($"No loaded TMP font can render label '{label}'.");
+        return preferred;
+    }
+
+    private static bool CanRender(TMP_FontAsset? font, string text)
+    {
+        if (font == null || string.IsNullOrEmpty(text))
+        {
+            return false;
+        }
+
+        foreach (var ch in text)
+        {
+            if (char.IsWhiteSpace(ch))
+            {
+                continue;
+            }
+
+            if (!font.HasCharacter(ch, searchFallbacks: true, tryAddCharacter: true))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 }
 

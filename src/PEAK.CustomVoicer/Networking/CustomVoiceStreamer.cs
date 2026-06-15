@@ -55,7 +55,7 @@ public sealed class CustomVoiceStreamer : MonoBehaviour
         _streamRecorder.TransmitEnabled = true;
 
         Plugin.Log.LogInfo(
-            $"Streaming '{clip.name}' via secondary Photon Voice recorder ({clip.length:0.0}s, userData={_streamRecorder.UserData ?? "null"}).");
+            $"Streaming '{clip.name}' via secondary Photon Voice recorder ({clip.length:0.0}s, userData={_streamRecorder.UserData ?? "null"}, group={_streamRecorder.InterestGroup}, targets={FormatTargets(_streamRecorder.TargetPlayers)}).");
         _stopRoutine = StartCoroutine(StopAfterClip(clip.length + 0.2f));
         return true;
     }
@@ -102,12 +102,28 @@ public sealed class CustomVoiceStreamer : MonoBehaviour
         }
 
         recorder.InterestGroup = primaryRecorder.InterestGroup;
-        recorder.TargetPlayers = primaryRecorder.TargetPlayers;
+
+        var targetPlayers = primaryRecorder.TargetPlayers;
+        if (targetPlayers != null && targetPlayers.Length > 0)
+        {
+            recorder.TargetPlayers = targetPlayers;
+        }
+
         recorder.ReliableMode = primaryRecorder.ReliableMode;
         recorder.Encrypt = primaryRecorder.Encrypt;
         recorder.SamplingRate = primaryRecorder.SamplingRate;
         recorder.FrameDuration = primaryRecorder.FrameDuration;
         recorder.Bitrate = primaryRecorder.Bitrate;
+    }
+
+    private static string FormatTargets(int[]? targetPlayers)
+    {
+        if (targetPlayers == null)
+        {
+            return "all";
+        }
+
+        return targetPlayers.Length == 0 ? "all" : string.Join(",", targetPlayers);
     }
 
     private IEnumerator StopAfterClip(float seconds)
