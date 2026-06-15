@@ -7,6 +7,8 @@ namespace PEAK.CustomVoicer.Voice;
 
 public static class VoicePlayback
 {
+    private const string LocalMonitorObjectName = "PEAK.CustomVoicer_LocalMonitor";
+
     private static readonly Dictionary<int, AudioSource> SourcesByActor = new();
 
     public static void PlayFromLocalSelection(int globalIndex)
@@ -30,25 +32,23 @@ public static class VoicePlayback
             return;
         }
 
-        PlayLocalOnly(character, entry.Clip, entry.Subtitle);
+        PlayLocalMonitor(character, entry.Clip, entry.Subtitle);
 
         var streamed = CustomVoiceStreamer.Instance != null &&
                        CustomVoiceStreamer.Instance.TryStream(character, entry.Clip, entry.Subtitle);
 
         if (!streamed)
         {
-            Plugin.Log.LogDebug($"Played '{entry.Clip.name}' locally only.");
+            Plugin.Log.LogDebug($"Played '{entry.Clip.name}' locally without Photon streaming.");
         }
     }
 
-    private static void PlayLocalOnly(Character character, AudioClip clip, string? subtitle)
+    private static void PlayLocalMonitor(Character character, AudioClip clip, string? subtitle)
     {
         var source = GetOrCreateSource(character);
         source.volume = ModConfig.Volume.Value;
-        source.spatialBlend = 1f;
-        source.minDistance = 2f;
-        source.maxDistance = 40f;
-        source.rolloffMode = AudioRolloffMode.Linear;
+        source.spatialBlend = 0f;
+        source.panStereo = 0f;
         source.PlayOneShot(clip);
 
         if (!string.IsNullOrWhiteSpace(subtitle))
@@ -65,10 +65,17 @@ public static class VoicePlayback
             return existing;
         }
 
-        var source = character.GetComponent<AudioSource>();
+        var sourceTransform = character.transform.Find(LocalMonitorObjectName);
+        var source = sourceTransform != null ? sourceTransform.GetComponent<AudioSource>() : null;
         if (source == null)
         {
-            source = character.gameObject.AddComponent<AudioSource>();
+            var sourceObject = sourceTransform != null
+                ? sourceTransform.gameObject
+                : new GameObject(LocalMonitorObjectName);
+
+            sourceObject.transform.SetParent(character.transform, false);
+            source = sourceObject.GetComponent<AudioSource>() ?? sourceObject.AddComponent<AudioSource>();
+            source.playOnAwake = false;
         }
 
         if (actor >= 0)

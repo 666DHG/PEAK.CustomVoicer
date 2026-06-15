@@ -54,11 +54,6 @@ public sealed class CustomVoiceStreamer : MonoBehaviour
         _streamRecorder.RecordingEnabled = true;
         _streamRecorder.TransmitEnabled = true;
 
-        if (!string.IsNullOrWhiteSpace(subtitle))
-        {
-            Plugin.Log.LogInfo($"[CustomVoicer] {subtitle}");
-        }
-
         Plugin.Log.LogInfo(
             $"Streaming '{clip.name}' via secondary Photon Voice recorder ({clip.length:0.0}s, userData={_streamRecorder.UserData ?? "null"}).");
         _stopRoutine = StartCoroutine(StopAfterClip(clip.length + 0.2f));
