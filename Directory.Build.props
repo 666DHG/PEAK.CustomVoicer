@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <Import Project="Config.Build.user.props" Condition="Exists('Config.Build.user.props')" />
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PeakGameRootDir Condition="'$(PeakGameRootDir)' == ''">$(MSBuildThisFileDirectory)..\PEAK\</PeakGameRootDir>
+    <PeakManagedDir>$(PeakGameRootDir)\PEAK_Data\Managed\</PeakManagedDir>
+    <PeakBepInExCoreDir>$(PeakGameRootDir)\BepInEx\core\</PeakBepInExCoreDir>
+    <PeakPluginsDir>$(PeakGameRootDir)\BepInEx\plugins\</PeakPluginsDir>
+    <PluginDeployDir>$(PeakPluginsDir)PEAK.CustomVoicer\</PluginDeployDir>
+  </PropertyGroup>
+</Project>

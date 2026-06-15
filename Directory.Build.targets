@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <Target Name="DeployPlugin" AfterTargets="Build" Condition="'$(PeakGameRootDir)' != '' and Exists('$(PeakGameRootDir)')">
+    <MakeDir Directories="$(PluginDeployDir)" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(PluginDeployDir)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)assets\voice_pack.json" DestinationFolder="$(PluginDeployDir)" SkipUnchangedFiles="true" Condition="Exists('$(MSBuildThisFileDirectory)assets\voice_pack.json') and !Exists('$(PluginDeployDir)voice_pack.json')" />
+    <Message Importance="high" Text="Deployed $(TargetFileName) to $(PluginDeployDir)" />
+  </Target>
+</Project>

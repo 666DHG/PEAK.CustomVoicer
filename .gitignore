@@ -5,3 +5,7 @@ Config.Build.user.props
 *.user
 
 .cursor_chat
+assets/
+tools/
+emote-wheel-methods.txt
+photon-reflection.txt
