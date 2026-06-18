@@ -6,6 +6,13 @@ Config.Build.user.props
 
 .cursor_chat
 assets/
-tools/
+artifacts/
+tools/*
+!tools/PEAK.CustomVoicer.VoicePackTool/
+!tools/PEAK.CustomVoicer.VoicePackTool/**
+!tools/PEAK.CustomVoicer.VoicePackTool.Tests/
+!tools/PEAK.CustomVoicer.VoicePackTool.Tests/**
+tools/**/bin/
+tools/**/obj/
 emote-wheel-methods.txt
 photon-reflection.txt

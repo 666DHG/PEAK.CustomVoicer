@@ -25,8 +25,15 @@
 
   <Target Name="DeployPlugin" AfterTargets="Build" Condition="'$(DeployPluginOnBuild)' == 'true' and '$(PeakGameRootDir)' != '' and Exists('$(PeakGameRootDir)')">
     <MakeDir Directories="$(PluginDeployDir)" />
-    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(PluginDeployDir)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(PluginDeployDir)" SkipUnchangedFiles="true" Condition="'$(OutputType)' != 'Exe'" />
+    <ItemGroup Condition="'$(OutputType)' == 'Exe'">
+      <PluginDeployRuntimeFiles Include="$(TargetDir)$(AssemblyName).exe" Condition="Exists('$(TargetDir)$(AssemblyName).exe')" />
+      <PluginDeployRuntimeFiles Include="$(TargetDir)$(AssemblyName).dll" Condition="Exists('$(TargetDir)$(AssemblyName).dll')" />
+      <PluginDeployRuntimeFiles Include="$(TargetDir)$(AssemblyName).deps.json" Condition="Exists('$(TargetDir)$(AssemblyName).deps.json')" />
+      <PluginDeployRuntimeFiles Include="$(TargetDir)$(AssemblyName).runtimeconfig.json" Condition="Exists('$(TargetDir)$(AssemblyName).runtimeconfig.json')" />
+    </ItemGroup>
+    <Copy SourceFiles="@(PluginDeployRuntimeFiles)" DestinationFolder="$(PluginDeployDir)" SkipUnchangedFiles="true" Condition="'$(OutputType)' == 'Exe' and '@(PluginDeployRuntimeFiles)' != ''" />
     <Copy SourceFiles="$(MSBuildThisFileDirectory)assets\voice_pack.json" DestinationFolder="$(PluginDeployDir)" SkipUnchangedFiles="true" Condition="Exists('$(MSBuildThisFileDirectory)assets\voice_pack.json') and !Exists('$(PluginDeployDir)voice_pack.json')" />
-    <Message Importance="high" Text="Deployed $(TargetFileName) to $(PluginDeployDir)" />
+    <Message Importance="high" Text="Deployed $(AssemblyName) to $(PluginDeployDir)" />
   </Target>
 </Project>

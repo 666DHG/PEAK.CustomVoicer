@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   build-release:
-    name: Build and release DLL
+    name: Build and release package
     runs-on: [self-hosted, Windows]
 
     steps:
@@ -59,10 +59,38 @@ jobs:
       - name: Verify artifact
         shell: pwsh
         run: |
-          $artifact = 'src\PEAK.CustomVoicer\bin\Release\netstandard2.1\PEAK.CustomVoicer.dll'
-          if (-not (Test-Path -LiteralPath $artifact -PathType Leaf)) {
-            throw "Build artifact was not found."
+          $requiredArtifacts = @(
+            'src\PEAK.CustomVoicer\bin\Release\netstandard2.1\PEAK.CustomVoicer.dll',
+            'tools\PEAK.CustomVoicer.VoicePackTool\bin\Release\net8.0\PEAK.CustomVoicer.VoicePackTool.exe',
+            'tools\PEAK.CustomVoicer.VoicePackTool\bin\Release\net8.0\PEAK.CustomVoicer.VoicePackTool.dll',
+            'tools\PEAK.CustomVoicer.VoicePackTool\bin\Release\net8.0\PEAK.CustomVoicer.VoicePackTool.deps.json',
+            'tools\PEAK.CustomVoicer.VoicePackTool\bin\Release\net8.0\PEAK.CustomVoicer.VoicePackTool.runtimeconfig.json'
+          )
+
+          foreach ($artifact in $requiredArtifacts) {
+            if (-not (Test-Path -LiteralPath $artifact -PathType Leaf)) {
+              throw "Build artifact was not found: $artifact"
+            }
           }
+
+      - name: Package release
+        shell: pwsh
+        run: |
+          $packageRoot = 'artifacts\PEAK.CustomVoicer'
+          New-Item -ItemType Directory -Force -Path $packageRoot | Out-Null
+
+          Copy-Item -LiteralPath 'src\PEAK.CustomVoicer\bin\Release\netstandard2.1\PEAK.CustomVoicer.dll' -Destination $packageRoot
+          Copy-Item -LiteralPath 'tools\PEAK.CustomVoicer.VoicePackTool\bin\Release\net8.0\PEAK.CustomVoicer.VoicePackTool.exe' -Destination $packageRoot
+          Copy-Item -LiteralPath 'tools\PEAK.CustomVoicer.VoicePackTool\bin\Release\net8.0\PEAK.CustomVoicer.VoicePackTool.dll' -Destination $packageRoot
+          Copy-Item -LiteralPath 'tools\PEAK.CustomVoicer.VoicePackTool\bin\Release\net8.0\PEAK.CustomVoicer.VoicePackTool.deps.json' -Destination $packageRoot
+          Copy-Item -LiteralPath 'tools\PEAK.CustomVoicer.VoicePackTool\bin\Release\net8.0\PEAK.CustomVoicer.VoicePackTool.runtimeconfig.json' -Destination $packageRoot
+
+          $zipPath = "artifacts\PEAK.CustomVoicer-v${{ inputs.version }}.zip"
+          if (Test-Path -LiteralPath $zipPath) {
+            Remove-Item -LiteralPath $zipPath
+          }
+
+          Compress-Archive -Path "$packageRoot\*" -DestinationPath $zipPath
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -71,4 +99,7 @@ jobs:
           name: PEAK CustomVoicer v${{ inputs.version }}
           target_commitish: ${{ github.sha }}
           fail_on_unmatched_files: true
-          files: src/PEAK.CustomVoicer/bin/Release/netstandard2.1/PEAK.CustomVoicer.dll
+          files: |
+            artifacts/PEAK.CustomVoicer-v${{ inputs.version }}.zip
+            src/PEAK.CustomVoicer/bin/Release/netstandard2.1/PEAK.CustomVoicer.dll
+            tools/PEAK.CustomVoicer.VoicePackTool/bin/Release/net8.0/PEAK.CustomVoicer.VoicePackTool.exe

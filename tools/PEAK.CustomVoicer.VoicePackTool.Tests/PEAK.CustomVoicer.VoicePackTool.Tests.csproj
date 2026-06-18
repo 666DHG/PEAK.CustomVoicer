@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>PEAK.CustomVoicer.VoicePackTool.Tests</AssemblyName>
+    <RootNamespace>PEAK.CustomVoicer.VoicePackTool.Tests</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <DeployPluginOnBuild>false</DeployPluginOnBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PEAK.CustomVoicer.VoicePackTool\PEAK.CustomVoicer.VoicePackTool.csproj" />
+  </ItemGroup>
+
+</Project>

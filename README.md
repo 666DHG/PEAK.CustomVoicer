@@ -12,7 +12,7 @@ BepInEx mod for [PEAK](https://store.steampowered.com/app/3527290/PEAK/) that ad
    ```
    PEAK/BepInEx/plugins/PEAK.CustomVoicer/
    ```
-2. Place `voice_pack.json` and your audio files in the same folder (see [Voice pack](#voice-pack) below).
+2. Place `PEAK.CustomVoicer.VoicePackTool.exe` and your audio files in the same folder (see [Voice pack](#voice-pack) below).
 3. Launch the game once so BepInEx generates the config file.
 
 ## Configuration
@@ -23,14 +23,17 @@ All voice content lives in the plugin folder:
 
 ```
 PEAK/BepInEx/plugins/PEAK.CustomVoicer/
-├── PEAK.CustomVoicer.dll
-├── voice_pack.json
-├── hello.ogg
-├── meme1.wav
-└── ...
+|-- PEAK.CustomVoicer.dll
+|-- PEAK.CustomVoicer.VoicePackTool.exe
+|-- voice_pack.json
+|-- hello.ogg
+|-- meme1.wav
+`-- ...
 ```
 
-Edit `voice_pack.json` to define wheel slots (8 per page; use the mouse wheel to flip pages when you have more):
+Run `PEAK.CustomVoicer.VoicePackTool.exe` after adding, removing, or renaming audio files. The tool scans the same folder for `.wav`, `.ogg`, and `.mp3` files and creates or updates `voice_pack.json` automatically. Existing labels and subtitles are preserved, and the old JSON is backed up before the tool writes changes.
+
+Advanced users can still edit `voice_pack.json` to define wheel slots (8 per page; use the mouse wheel to flip pages when you have more):
 
 ```json
 {
@@ -50,6 +53,13 @@ Edit `voice_pack.json` to define wheel slots (8 per page; use the mouse wheel to
 
 Supported audio formats: `.wav`, `.ogg`, `.mp3`
 
+Tool options:
+
+```bash
+PEAK.CustomVoicer.VoicePackTool.exe --dry-run
+PEAK.CustomVoicer.VoicePackTool.exe --help
+```
+
 After changing the JSON or adding files, restart the game (or re-enter a run) to reload the pack.
 
 ### BepInEx settings
@@ -60,14 +70,14 @@ First launch creates:
 PEAK/BepInEx/config/com.paradoxyz.peak.customvoicer.cfg
 ```
 
-Open it in a text editor, or use a mod manager’s config UI if available.
+Open it in a text editor, or use a mod manager's config UI if available.
 
 | Section | Key | Default | Description |
 |---------|-----|---------|-------------|
 | General | `Enabled` | `true` | Master toggle for the voice wheel |
 | General | `VoiceWheelKey` | `Semicolon` | Hold this key to open the wheel (default: `;`) |
 | General | `VoicePackFile` | `voice_pack.json` | JSON filename inside the plugin folder |
-| Audio | `Volume` | `1.0` | Local fallback volume (0–1) when not streaming via Photon Voice |
+| Audio | `Volume` | `1.0` | Local fallback volume (0-1) when not streaming via Photon Voice |
 
 **Change the hotkey:** set `VoiceWheelKey` to a Unity `KeyCode` name, for example:
 
@@ -78,7 +88,7 @@ VoiceWheelKey = Semicolon
 
 Other examples: `V`, `B`, `LeftBracket`, `F1`. See [Unity KeyCode](https://docs.unity3d.com/ScriptReference/KeyCode.html) for valid names.
 
-If you already have a config from an older version, delete the `VoiceWheelKey` line or set it to `Semicolon` manually — BepInEx keeps existing values and does not overwrite them on update.
+If you already have a config from an older version, delete the `VoiceWheelKey` line or set it to `Semicolon` manually. BepInEx keeps existing values and does not overwrite them on update.
 
 ### Build-time path (developers only)
 
@@ -104,6 +114,6 @@ dotnet build PEAK.CustomVoicer.sln -c Release
 
 Only the player who selects a voice line needs this mod installed. Audio is streamed to other players through PEAK's built-in Photon Voice system (same proximity voice channel). Other players do not need the mod or your voice pack files.
 
-Your normal microphone voice is unaffected — custom clips use a separate secondary Recorder.
+Your normal microphone voice is unaffected. Custom clips use a separate secondary Recorder.
 
 Quality follows voice chat encoding (Opus); best for short clips, not high-fidelity music. All players should use the same graphics API (Vulkan or DX12) if voice chat is flaky.
