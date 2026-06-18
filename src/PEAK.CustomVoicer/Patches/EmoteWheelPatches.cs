@@ -85,14 +85,31 @@ internal static class EmoteWheelInitWheelPatch
 
         var slices = __instance.slices;
         var data = __instance.data;
+        var pageField = AccessTools.Field(typeof(EmoteWheel), "page");
+        var page = pageField?.GetValue(__instance) is int currentPage ? currentPage : 0;
+        page = Mathf.Clamp(page, 0, Math.Max(0, __instance.pages - 1));
+        pageField?.SetValue(__instance, page);
+
         for (var i = 0; i < slices.Length; i++)
         {
-            slices[i].Init(data[i], __instance);
+            var dataIndex = i + (VoiceWheelState.SlicesPerPage * page);
+            var slotData = dataIndex >= 0 && dataIndex < data.Length ? data[dataIndex] : null;
+            slices[i].Init(slotData, __instance);
         }
 
         if (__instance.selectedEmoteName != null)
         {
             __instance.selectedEmoteName.text = string.Empty;
+        }
+
+        if (__instance.nextButton != null)
+        {
+            __instance.nextButton.gameObject.SetActive(page + 1 < __instance.pages);
+        }
+
+        if (__instance.prevButton != null)
+        {
+            __instance.prevButton.gameObject.SetActive(page > 0);
         }
 
         return false;
