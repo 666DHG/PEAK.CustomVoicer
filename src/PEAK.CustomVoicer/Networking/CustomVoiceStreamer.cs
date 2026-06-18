@@ -1,4 +1,7 @@
+using System;
 using System.Collections;
+using System.Reflection;
+using Photon.Voice;
 using Photon.Voice.PUN;
 using Photon.Voice.Unity;
 using UnityEngine;
@@ -14,7 +17,27 @@ public sealed class CustomVoiceStreamer : MonoBehaviour
 
     private GameObject? _streamObject;
     private Recorder? _streamRecorder;
+    private Recorder? _primaryStreamRecorder;
+    private RecorderBackup? _primaryBackup;
+    private VoiceClipMixProcessor? _mixProcessor;
     private Coroutine? _stopRoutine;
+
+    private sealed class RecorderBackup
+    {
+        public Recorder.InputSourceType SourceType { get; set; }
+        public AudioClip? AudioClip { get; set; }
+        public bool LoopAudioClip { get; set; }
+        public System.Func<Photon.Voice.IAudioDesc>? InputFactory { get; set; }
+        public bool VoiceDetection { get; set; }
+        public bool TransmitEnabled { get; set; }
+        public bool RecordingEnabled { get; set; }
+    }
+
+    private static readonly MethodInfo? AddFloatPostProcessorMethod =
+        typeof(LocalVoiceAudioFloat).GetMethod(nameof(LocalVoiceAudioFloat.AddPostProcessor));
+
+    private static readonly MethodInfo? RemoveFloatProcessorMethod =
+        typeof(LocalVoiceAudioFloat).GetMethod(nameof(LocalVoiceAudioFloat.RemoveProcessor));
 
     private void Awake()
     {
@@ -43,11 +66,28 @@ public sealed class CustomVoiceStreamer : MonoBehaviour
 
         StopCurrentStream();
 
+        var primaryRecorder = VoiceRecorderResolver.GetPrimaryRecorder();
+        if (primaryRecorder != null && TryMixViaPrimaryRecorder(primaryRecorder, clip))
+        {
+            Plugin.Log.LogInfo(
+                $"Mixing '{clip.name}' into primary Photon Voice recorder ({clip.length:0.0}s, userData={primaryRecorder.UserData ?? "null"}, group={primaryRecorder.InterestGroup}, targets={FormatTargets(primaryRecorder.TargetPlayers)}).");
+            _stopRoutine = StartCoroutine(StopAfterClip(clip.length + 0.2f));
+            return true;
+        }
+
+        if (primaryRecorder != null)
+        {
+            StreamViaPrimaryRecorder(primaryRecorder, clip);
+            Plugin.Log.LogInfo(
+                $"Streaming '{clip.name}' via primary Photon Voice recorder fallback ({clip.length:0.0}s, userData={primaryRecorder.UserData ?? "null"}, group={primaryRecorder.InterestGroup}, targets={FormatTargets(primaryRecorder.TargetPlayers)}).");
+            _stopRoutine = StartCoroutine(StopAfterClip(clip.length + 0.2f));
+            return true;
+        }
+
         _streamObject = new GameObject("PEAK.CustomVoicer_StreamRecorder");
         _streamObject.transform.SetParent(character.transform, false);
 
         _streamRecorder = _streamObject.AddComponent<Recorder>();
-        var primaryRecorder = VoiceRecorderResolver.GetPrimaryRecorder();
         ConfigureStreamRecorder(_streamRecorder, clip, character, primaryRecorder);
 
         client.AddRecorder(_streamRecorder);
@@ -76,6 +116,9 @@ public sealed class CustomVoiceStreamer : MonoBehaviour
             client?.RemoveRecorder(_streamRecorder);
             _streamRecorder = null;
         }
+
+        RestorePrimaryRecorder();
+        RemovePrimaryMixProcessor();
 
         if (_streamObject != null)
         {
@@ -114,6 +157,119 @@ public sealed class CustomVoiceStreamer : MonoBehaviour
         recorder.SamplingRate = primaryRecorder.SamplingRate;
         recorder.FrameDuration = primaryRecorder.FrameDuration;
         recorder.Bitrate = primaryRecorder.Bitrate;
+    }
+
+    private bool TryMixViaPrimaryRecorder(Recorder recorder, AudioClip clip)
+    {
+        var voiceAudio = GetVoiceAudio(recorder) as LocalVoiceAudioFloat;
+        if (voiceAudio == null || AddFloatPostProcessorMethod == null)
+        {
+            Plugin.Log.LogWarning("Primary Photon Voice recorder does not expose a float LocalVoiceAudio; falling back to source switch.");
+            return false;
+        }
+
+        _primaryStreamRecorder = recorder;
+        _primaryBackup = new RecorderBackup
+        {
+            SourceType = recorder.SourceType,
+            AudioClip = recorder.AudioClip,
+            LoopAudioClip = recorder.LoopAudioClip,
+            InputFactory = recorder.InputFactory,
+            VoiceDetection = recorder.VoiceDetection,
+            TransmitEnabled = recorder.TransmitEnabled,
+            RecordingEnabled = recorder.RecordingEnabled,
+        };
+
+        _mixProcessor = new VoiceClipMixProcessor(
+            clip,
+            Math.Max(1, voiceAudio.Info.Channels),
+            Math.Max(1, voiceAudio.Info.SamplingRate),
+            1f);
+
+        recorder.VoiceDetection = false;
+        recorder.TransmitEnabled = true;
+        recorder.RecordingEnabled = true;
+        AddFloatPostProcessorMethod.Invoke(voiceAudio, new object[] { new IProcessor<float>[] { _mixProcessor } });
+        return true;
+    }
+
+    private void StreamViaPrimaryRecorder(Recorder recorder, AudioClip clip)
+    {
+        _primaryStreamRecorder = recorder;
+        _primaryBackup = new RecorderBackup
+        {
+            SourceType = recorder.SourceType,
+            AudioClip = recorder.AudioClip,
+            LoopAudioClip = recorder.LoopAudioClip,
+            InputFactory = recorder.InputFactory,
+            VoiceDetection = recorder.VoiceDetection,
+            TransmitEnabled = recorder.TransmitEnabled,
+            RecordingEnabled = recorder.RecordingEnabled,
+        };
+
+        recorder.RecordingEnabled = false;
+        recorder.SourceType = Recorder.InputSourceType.AudioClip;
+        recorder.AudioClip = clip;
+        recorder.LoopAudioClip = false;
+        recorder.VoiceDetection = false;
+        recorder.TransmitEnabled = true;
+        recorder.RecordingEnabled = true;
+    }
+
+    private void RestorePrimaryRecorder()
+    {
+        if (_primaryStreamRecorder == null || _primaryBackup == null)
+        {
+            return;
+        }
+
+        var recorder = _primaryStreamRecorder;
+        var backup = _primaryBackup;
+        _primaryStreamRecorder = null;
+        _primaryBackup = null;
+
+        recorder.RecordingEnabled = false;
+        recorder.SourceType = backup.SourceType;
+        recorder.AudioClip = backup.AudioClip;
+        recorder.LoopAudioClip = backup.LoopAudioClip;
+        recorder.InputFactory = backup.InputFactory;
+        recorder.VoiceDetection = backup.VoiceDetection;
+        recorder.TransmitEnabled = backup.TransmitEnabled;
+        recorder.RecordingEnabled = backup.RecordingEnabled;
+    }
+
+    private void RemovePrimaryMixProcessor()
+    {
+        if (_primaryStreamRecorder == null || _primaryBackup == null || _mixProcessor == null)
+        {
+            return;
+        }
+
+        var recorder = _primaryStreamRecorder;
+        var backup = _primaryBackup;
+        var processor = _mixProcessor;
+        _primaryStreamRecorder = null;
+        _primaryBackup = null;
+        _mixProcessor = null;
+
+        var voiceAudio = GetVoiceAudio(recorder) as LocalVoiceAudioFloat;
+        if (voiceAudio != null && RemoveFloatProcessorMethod != null)
+        {
+            RemoveFloatProcessorMethod.Invoke(voiceAudio, new object[] { new IProcessor<float>[] { processor } });
+        }
+
+        recorder.VoiceDetection = backup.VoiceDetection;
+        recorder.TransmitEnabled = backup.TransmitEnabled;
+        recorder.RecordingEnabled = backup.RecordingEnabled;
+    }
+
+    private static ILocalVoiceAudio? GetVoiceAudio(Recorder recorder)
+    {
+        var property = typeof(Recorder).GetProperty(
+            "voiceAudio",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+
+        return property?.GetValue(recorder) as ILocalVoiceAudio;
     }
 
     private static string FormatTargets(int[]? targetPlayers)
