@@ -147,40 +147,58 @@ internal static class EmoteWheelSliceInitPatch
             var text = labelObject.GetComponent<TextMeshProUGUI>() ?? labelObject.AddComponent<TextMeshProUGUI>();
             text.text = label;
             ApplyGameTextStyle(text, wheel, label);
-            text.fontSize = 34f;
-            text.fontSizeMin = 18f;
-            text.fontSizeMax = 38f;
+            text.fontSize = 50f;
+            text.fontSizeMin = 28f;
+            text.fontSizeMax = 56f;
             text.enableAutoSizing = true;
             text.color = new Color(0.12f, 0.10f, 0.08f, 1f);
             text.alignment = TextAlignmentOptions.Center;
-            text.fontStyle = FontStyles.Bold | FontStyles.UpperCase;
-            text.outlineColor = new Color(1f, 0.96f, 0.82f, 1f);
-            text.outlineWidth = 0.24f;
+            text.fontStyle = wheel.selectedEmoteName != null
+                ? wheel.selectedEmoteName.fontStyle
+                : FontStyles.Normal;
+            text.outlineWidth = 0f;
             text.textWrappingMode = TextWrappingModes.Normal;
             text.overflowMode = TextOverflowModes.Ellipsis;
             text.raycastTarget = false;
+            ApplyShadow(labelObject);
 
             var rect = text.GetComponent<RectTransform>();
             if (__instance.image != null)
             {
                 var imageRect = __instance.image.GetComponent<RectTransform>();
-                rect.anchorMin = imageRect.anchorMin;
-                rect.anchorMax = imageRect.anchorMax;
-                rect.sizeDelta = imageRect.sizeDelta * 1.45f;
+                rect.anchorMin = new Vector2(0.5f, 0.5f);
+                rect.anchorMax = new Vector2(0.5f, 0.5f);
+                rect.pivot = new Vector2(0.5f, 0.5f);
+                rect.sizeDelta = new Vector2(
+                    Mathf.Max(160f, Mathf.Abs(imageRect.sizeDelta.x) * 1.35f),
+                    Mathf.Max(72f, Mathf.Abs(imageRect.sizeDelta.y) * 1.35f));
                 rect.anchoredPosition = imageRect.anchoredPosition;
-                rect.localScale = imageRect.localScale;
+                rect.localRotation = imageRect.localRotation;
+                rect.localScale = Vector3.one * 1.25f;
             }
             else
             {
                 rect.anchorMin = new Vector2(0.5f, 0.5f);
                 rect.anchorMax = new Vector2(0.5f, 0.5f);
-                rect.sizeDelta = new Vector2(140f, 56f);
+                rect.pivot = new Vector2(0.5f, 0.5f);
+                rect.sizeDelta = new Vector2(160f, 72f);
+                rect.localScale = Vector3.one * 1.25f;
             }
+
+            labelObject.transform.SetAsLastSibling();
         }
         catch (Exception ex)
         {
             Plugin.Log.LogError($"Voice wheel slice init failed: {ex.Message}");
         }
+    }
+
+    private static void ApplyShadow(GameObject labelObject)
+    {
+        var shadow = labelObject.GetComponent<Shadow>() ?? labelObject.AddComponent<Shadow>();
+        shadow.effectColor = new Color(1f, 0.96f, 0.78f, 0.55f);
+        shadow.effectDistance = new Vector2(1.8f, -1.8f);
+        shadow.useGraphicAlpha = true;
     }
 
     private static void ApplyGameTextStyle(TextMeshProUGUI text, EmoteWheel wheel, string label)
