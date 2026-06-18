@@ -77,6 +77,16 @@ public sealed class VoiceWheelController : MonoBehaviour
         }
 
         _emoteWheel = UnityEngine.Object.FindFirstObjectByType<EmoteWheel>();
+        if (_emoteWheel != null)
+        {
+            return;
+        }
+
+        var guiManager = UnityEngine.Object.FindFirstObjectByType<GUIManager>();
+        if (guiManager?.emoteWheel != null)
+        {
+            _emoteWheel = guiManager.emoteWheel.GetComponent<EmoteWheel>();
+        }
     }
 
     private static bool ShouldBlockWheel()
