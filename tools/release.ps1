@@ -77,8 +77,17 @@ elseif ($LASTEXITCODE -ne 2) {
     Fail "Could not check whether remote tag '$tagName' exists."
 }
 
-& gh release view $tagName *> $null
-if ($LASTEXITCODE -eq 0) {
+$previousErrorActionPreference = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
+try {
+    & gh release view $tagName *> $null
+    $releaseViewExitCode = $LASTEXITCODE
+}
+finally {
+    $ErrorActionPreference = $previousErrorActionPreference
+}
+
+if ($releaseViewExitCode -eq 0) {
     Fail "GitHub release '$tagName' already exists."
 }
 
