@@ -1,7 +1,9 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [string]$Version
+    [string]$Version,
+
+    [switch]$Prerelease
 )
 
 $ErrorActionPreference = 'Stop'
@@ -127,14 +129,27 @@ if (Test-Path -LiteralPath $zipPath) {
 Compress-Archive -Path (Join-Path $packageRoot '*') -DestinationPath $zipPath
 Require-File $zipPath 'Release zip'
 
+$releaseArgs = @(
+    'release',
+    'create',
+    $tagName,
+    $zipPath,
+    $pluginDll,
+    $toolExe,
+    '--title',
+    "PEAK CustomVoicer $tagName",
+    '--notes',
+    "Release $tagName",
+    '--target',
+    $targetCommit
+)
+
+if ($Prerelease) {
+    $releaseArgs += '--prerelease'
+}
+
 Write-Host "Creating GitHub release $tagName..."
-& gh release create $tagName `
-    $zipPath `
-    $pluginDll `
-    $toolExe `
-    --title "PEAK CustomVoicer $tagName" `
-    --notes "Release $tagName" `
-    --target $targetCommit
+& gh @releaseArgs
 
 if ($LASTEXITCODE -ne 0) {
     Fail 'GitHub release creation failed.'
