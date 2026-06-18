@@ -1,0 +1,74 @@
+name: Build and Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version, for example 1.2.3
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    name: Build and release DLL
+    runs-on: [self-hosted, Windows]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate inputs and local PEAK references
+        shell: pwsh
+        run: |
+          $version = '${{ inputs.version }}'
+          if ($version -notmatch '^\d+\.\d+\.\d+([-.][0-9A-Za-z.-]+)?$') {
+            throw "Version must look like 1.2.3 or 1.2.3-preview.1."
+          }
+
+          if ([string]::IsNullOrWhiteSpace($env:PEAK_GAME_ROOT)) {
+            throw "PEAK_GAME_ROOT is not set on the self-hosted runner."
+          }
+
+          Write-Output "::add-mask::$env:PEAK_GAME_ROOT"
+
+          $assemblyCSharp = Join-Path $env:PEAK_GAME_ROOT 'PEAK_Data\Managed\Assembly-CSharp.dll'
+          $harmony = Join-Path $env:PEAK_GAME_ROOT 'BepInEx\core\0Harmony.dll'
+
+          if (-not (Test-Path -LiteralPath $assemblyCSharp -PathType Leaf)) {
+            throw "Required PEAK managed reference was not found under PEAK_GAME_ROOT."
+          }
+
+          if (-not (Test-Path -LiteralPath $harmony -PathType Leaf)) {
+            throw "Required BepInEx core reference was not found under PEAK_GAME_ROOT."
+          }
+
+      - name: Build
+        shell: pwsh
+        run: |
+          dotnet build PEAK.CustomVoicer.sln `
+            --configuration Release `
+            /p:Version='${{ inputs.version }}' `
+            /p:PeakGameRootDir="$env:PEAK_GAME_ROOT" `
+            /p:DeployPluginOnBuild=false
+
+      - name: Verify artifact
+        shell: pwsh
+        run: |
+          $artifact = 'src\PEAK.CustomVoicer\bin\Release\netstandard2.1\PEAK.CustomVoicer.dll'
+          if (-not (Test-Path -LiteralPath $artifact -PathType Leaf)) {
+            throw "Build artifact was not found."
+          }
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ inputs.version }}
+          name: PEAK CustomVoicer v${{ inputs.version }}
+          target_commitish: ${{ github.sha }}
+          fail_on_unmatched_files: true
+          files: src/PEAK.CustomVoicer/bin/Release/netstandard2.1/PEAK.CustomVoicer.dll

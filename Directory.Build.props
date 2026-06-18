@@ -5,6 +5,7 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <DeployPluginOnBuild>true</DeployPluginOnBuild>
     <PeakGameRootDir Condition="'$(PeakGameRootDir)' == ''">$(MSBuildThisFileDirectory)..\PEAK\</PeakGameRootDir>
     <PeakManagedDir>$(PeakGameRootDir)\PEAK_Data\Managed\</PeakManagedDir>
     <PeakBepInExCoreDir>$(PeakGameRootDir)\BepInEx\core\</PeakBepInExCoreDir>

@@ -13,7 +13,7 @@ public class Plugin : BaseUnityPlugin
 {
     public const string PLUGIN_GUID = "com.paradoxyz.peak.customvoicer";
     public const string PLUGIN_NAME = "PEAK CustomVoicer";
-    public const string PLUGIN_VERSION = "1.0.0";
+    public const string PLUGIN_VERSION = GeneratedPluginVersion.Value;
 
     internal static ManualLogSource Log = null!;
     internal static Plugin Instance = null!;

@@ -1,6 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project>
-  <Target Name="DeployPlugin" AfterTargets="Build" Condition="'$(PeakGameRootDir)' != '' and Exists('$(PeakGameRootDir)')">
+  <PropertyGroup>
+    <GeneratedPluginVersionFile>$(IntermediateOutputPath)GeneratedPluginVersion.g.cs</GeneratedPluginVersionFile>
+  </PropertyGroup>
+
+  <Target Name="GeneratePluginVersion" BeforeTargets="BeforeCompile">
+    <ItemGroup>
+      <GeneratedPluginVersionLines Include="// &lt;auto-generated /&gt;" />
+      <GeneratedPluginVersionLines Include="namespace $(RootNamespace)%3B" />
+      <GeneratedPluginVersionLines Include="internal static class GeneratedPluginVersion" />
+      <GeneratedPluginVersionLines Include="{" />
+      <GeneratedPluginVersionLines Include="    public const string Value = &quot;$(Version)&quot;%3B" />
+      <GeneratedPluginVersionLines Include="}" />
+    </ItemGroup>
+    <WriteLinesToFile
+      File="$(GeneratedPluginVersionFile)"
+      Lines="@(GeneratedPluginVersionLines)"
+      Overwrite="true"
+      Encoding="UTF-8" />
+    <ItemGroup>
+      <Compile Include="$(GeneratedPluginVersionFile)" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="DeployPlugin" AfterTargets="Build" Condition="'$(DeployPluginOnBuild)' == 'true' and '$(PeakGameRootDir)' != '' and Exists('$(PeakGameRootDir)')">
     <MakeDir Directories="$(PluginDeployDir)" />
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(PluginDeployDir)" SkipUnchangedFiles="true" />
     <Copy SourceFiles="$(MSBuildThisFileDirectory)assets\voice_pack.json" DestinationFolder="$(PluginDeployDir)" SkipUnchangedFiles="true" Condition="Exists('$(MSBuildThisFileDirectory)assets\voice_pack.json') and !Exists('$(PluginDeployDir)voice_pack.json')" />

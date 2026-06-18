@@ -85,7 +85,7 @@ If you already have a config from an older version, delete the `VoiceWheelKey` l
 To auto-deploy the DLL when building, create `Config.Build.user.props` in the repo root (copy from `Config.Build.user.props.template`) and set your game install:
 
 ```xml
-<PeakGameRootDir>D:\Installs\Steam\steamapps\common\PEAK\</PeakGameRootDir>
+<PeakGameRootDir>C:\Path\To\PEAK\</PeakGameRootDir>
 ```
 
 Then run:
