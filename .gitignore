@@ -7,11 +7,10 @@ Config.Build.user.props
 .cursor_chat
 assets/
 artifacts/
-tools/*
-!tools/PEAK.CustomVoicer.VoicePackTool/
-!tools/PEAK.CustomVoicer.VoicePackTool/**
-!tools/PEAK.CustomVoicer.VoicePackTool.Tests/
-!tools/PEAK.CustomVoicer.VoicePackTool.Tests/**
+tools/reflect-emote.ps1
+tools/reflect-emote2.ps1
+tools/reflect-emote3.ps1
+tools/reflect-photon.ps1
 tools/**/bin/
 tools/**/obj/
 emote-wheel-methods.txt

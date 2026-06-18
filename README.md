@@ -104,6 +104,25 @@ Then run:
 dotnet build PEAK.CustomVoicer.sln -c Release
 ```
 
+### Maintainer release
+
+Releases are built locally to avoid exposing self-hosted runner paths in public GitHub Actions logs.
+
+Prerequisites:
+
+- .NET SDK
+- [GitHub CLI](https://cli.github.com/)
+- PEAK with BepInExPack PEAK installed locally
+- `PEAK_GAME_ROOT` set to the PEAK install directory
+
+```powershell
+$env:PEAK_GAME_ROOT="C:\Path\To\PEAK"
+gh auth login
+.\tools\release.ps1 -Version 1.2.3
+```
+
+The release script builds the solution, packages `PEAK.CustomVoicer.dll` with `PEAK.CustomVoicer.VoicePackTool`, and creates a GitHub release with the zip plus standalone DLL and exe assets. Existing tags or releases are not overwritten.
+
 ## Controls
 
 - **Hold `;`** (semicolon, default) to open the voice wheel.
