@@ -107,6 +107,7 @@ public sealed class VoicePackLoader : MonoBehaviour
 
             if (loaded.Clip != null)
             {
+                PreparePlaybackClips(loaded);
                 _entries.Add(loaded);
             }
         }
@@ -148,6 +149,57 @@ public sealed class VoicePackLoader : MonoBehaviour
         onLoaded(clip);
     }
 
+    private static void PreparePlaybackClips(LoadedVoiceEntry entry)
+    {
+        var sourceClip = entry.Clip;
+        if (sourceClip == null)
+        {
+            return;
+        }
+
+        var samples = new float[sourceClip.samples * Math.Max(1, sourceClip.channels)];
+        sourceClip.GetData(samples, 0);
+
+        var analysis = AudioNormalization.Analyze(samples);
+        var normalizationGain = ModConfig.NormalizeVoiceClips.Value
+            ? AudioNormalization.CalculateGain(analysis, ModConfig.TargetRmsDb.Value)
+            : 1f;
+
+        if (ModConfig.NormalizeVoiceClips.Value && analysis.IsSilent)
+        {
+            Plugin.Log.LogWarning($"Voice clip '{sourceClip.name}' is near silent; skipping normalization gain.");
+        }
+
+        if (ModConfig.NormalizeVoiceClips.Value)
+        {
+            Plugin.Log.LogDebug(
+                $"Voice clip '{sourceClip.name}' normalization: rms={LinearToDb(analysis.Rms):0.0} dBFS, activeRms={LinearToDb(analysis.ActiveRms):0.0} dBFS, peak={LinearToDb(analysis.Peak):0.0} dBFS, gain={normalizationGain:0.00}x.");
+        }
+
+        var localSamples = (float[])samples.Clone();
+        AudioNormalization.ApplyGain(localSamples, normalizationGain);
+
+        var streamSamples = (float[])localSamples.Clone();
+        AudioNormalization.ApplyGain(streamSamples, ModConfig.StreamVolume.Value);
+
+        entry.Clip = CreateClip(sourceClip, $"{sourceClip.name}_normalized", localSamples);
+        entry.StreamClip = CreateClip(sourceClip, $"{sourceClip.name}_stream", streamSamples);
+
+        Destroy(sourceClip);
+    }
+
+    private static AudioClip CreateClip(AudioClip sourceClip, string name, float[] samples)
+    {
+        var clip = AudioClip.Create(name, sourceClip.samples, Math.Max(1, sourceClip.channels), Math.Max(1, sourceClip.frequency), false);
+        clip.SetData(samples, 0);
+        return clip;
+    }
+
+    private static float LinearToDb(float value)
+    {
+        return value > 0f ? 20f * Mathf.Log10(value) : -120f;
+    }
+
     private void UnloadClips()
     {
         foreach (var entry in _entries)
@@ -155,6 +207,11 @@ public sealed class VoicePackLoader : MonoBehaviour
             if (entry.Clip != null)
             {
                 Destroy(entry.Clip);
+            }
+
+            if (entry.StreamClip != null && entry.StreamClip != entry.Clip)
+            {
+                Destroy(entry.StreamClip);
             }
         }
 

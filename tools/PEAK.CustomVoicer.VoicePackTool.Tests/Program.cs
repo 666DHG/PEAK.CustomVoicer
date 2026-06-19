@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using PEAK.CustomVoicer.Voice;
 using PEAK.CustomVoicer.VoicePackTool;
 
 namespace PEAK.CustomVoicer.VoicePackTool.Tests;
@@ -17,6 +18,11 @@ internal static class Program
             ("Recognizes mixed-case extensions", RecognizesMixedCaseExtensions),
             ("Dry run does not write files", DryRunDoesNotWrite),
             ("No audio creates empty pack with clear result", NoAudioCreatesEmptyPack),
+            ("Normalization attenuates loud clips", NormalizationAttenuatesLoudClips),
+            ("Normalization boosts quiet clips within max gain", NormalizationBoostsQuietClipsWithinMaxGain),
+            ("Normalization is not blocked by one transient peak", NormalizationIsNotBlockedByOneTransientPeak),
+            ("Normalization respects peak limit", NormalizationRespectsPeakLimit),
+            ("Normalization leaves silent clips stable", NormalizationLeavesSilentClipsStable),
         };
 
         foreach (var test in tests)
@@ -146,6 +152,57 @@ internal static class Program
         Assert.Equal(0, pack.Entries.Count);
     }
 
+    private static void NormalizationAttenuatesLoudClips()
+    {
+        var samples = Enumerable.Repeat(0.5f, 64).ToArray();
+
+        var gain = AudioNormalization.CalculateGain(samples, AudioNormalization.DefaultTargetRmsDb);
+
+        Assert.True(gain < 1f, $"Expected loud clip gain below 1, got {gain}.");
+        Assert.Near(AudioNormalization.DbToLinear(AudioNormalization.DefaultTargetRmsDb), 0.5f * gain, 0.0001f);
+    }
+
+    private static void NormalizationBoostsQuietClipsWithinMaxGain()
+    {
+        var samples = Enumerable.Repeat(0.01f, 64).ToArray();
+
+        var gain = AudioNormalization.CalculateGain(samples, AudioNormalization.DefaultTargetRmsDb);
+
+        Assert.Equal(AudioNormalization.DefaultMaxGain, gain);
+    }
+
+    private static void NormalizationRespectsPeakLimit()
+    {
+        var samples = Enumerable.Repeat(0.01f, 63).Append(0.9f).ToArray();
+
+        var gain = AudioNormalization.CalculateGain(samples, AudioNormalization.DefaultTargetRmsDb);
+        AudioNormalization.ApplyGain(samples, gain);
+
+        Assert.True(samples.Max(Math.Abs) <= AudioNormalization.DefaultPeakLimit + 0.0001f, "Expected peak limit to be respected.");
+    }
+
+    private static void NormalizationIsNotBlockedByOneTransientPeak()
+    {
+        var samples = Enumerable.Repeat(0.01f, 63).Append(0.9f).ToArray();
+
+        var gain = AudioNormalization.CalculateGain(samples, AudioNormalization.DefaultTargetRmsDb);
+
+        Assert.True(gain > 1f, $"Expected mostly quiet clip to still be boosted, got {gain}.");
+    }
+
+    private static void NormalizationLeavesSilentClipsStable()
+    {
+        var samples = new float[64];
+
+        var gain = AudioNormalization.CalculateGain(samples, AudioNormalization.DefaultTargetRmsDb);
+        AudioNormalization.ApplyGain(samples, gain);
+
+        Assert.Equal(1f, gain);
+        Assert.True(samples.All(sample => sample == 0f), "Expected silent clip to remain silent.");
+        Assert.False(float.IsNaN(gain), "Expected gain not to be NaN.");
+        Assert.False(float.IsInfinity(gain), "Expected gain not to be infinity.");
+    }
+
     private static VoicePackSyncResult Synchronize(bool dryRun = false)
     {
         return new VoicePackSynchronizer(new FixedTimeProvider(new DateTimeOffset(2026, 6, 18, 16, 30, 0, TimeSpan.Zero)))
@@ -252,6 +309,14 @@ internal static class Assert
         if (value == null)
         {
             throw new InvalidOperationException("Expected non-null value.");
+        }
+    }
+
+    public static void Near(float expected, float actual, float tolerance)
+    {
+        if (Math.Abs(expected - actual) > tolerance)
+        {
+            throw new InvalidOperationException($"Expected '{expected}' +/- {tolerance}, got '{actual}'.");
         }
     }
 }

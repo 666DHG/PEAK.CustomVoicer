@@ -75,9 +75,14 @@ Useful settings:
 | `Enabled` | `true` | Enable the voice wheel |
 | `VoiceWheelKey` | `Semicolon` | Hold key for the wheel |
 | `VoicePackFile` | `voice_pack.json` | Pack file in the plugin folder |
-| `Volume` | `1.0` | Local monitor volume |
+| `Volume` | `1.0` | Local monitor volume only |
+| `NormalizeVoiceClips` | `true` | Normalize clips in memory before playback and streaming |
+| `TargetRmsDb` | `-18` | Target RMS loudness in dBFS |
+| `StreamVolume` | `0.8` | Volume applied to clips sent through Photon Voice |
 
 `VoiceWheelKey` uses Unity `KeyCode` names, such as `V`, `B`, `LeftBracket`, or `F1`.
+
+`Volume` only controls what you hear locally. `StreamVolume` controls what other players receive through Photon Voice. Normalization is applied at load time in memory and does not modify your original audio files.
 
 ## Developers
 

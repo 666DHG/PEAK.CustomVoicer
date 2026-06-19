@@ -75,9 +75,14 @@ PEAK/BepInEx/config/com.paradoxyz.peak.customvoicer.cfg
 | `Enabled` | `true` | 是否启用语音轮盘 |
 | `VoiceWheelKey` | `Semicolon` | 呼出轮盘的按键 |
 | `VoicePackFile` | `voice_pack.json` | 插件目录中的语音包文件 |
-| `Volume` | `1.0` | 本地监听音量 |
+| `Volume` | `1.0` | 仅本地监听音量 |
+| `NormalizeVoiceClips` | `true` | 加载时在内存中归一化音频 |
+| `TargetRmsDb` | `-18` | RMS 目标响度，单位 dBFS |
+| `StreamVolume` | `0.8` | 发送到 Photon Voice 的音量 |
 
 `VoiceWheelKey` 使用 Unity `KeyCode` 名称，例如 `V`、`B`、`LeftBracket` 或 `F1`。
+
+`Volume` 只影响你本地听到的监听音量；`StreamVolume` 影响其他玩家通过 Photon Voice 听到的音量。归一化只在加载时于内存中处理，不会修改你的原始音频文件。
 
 ## 开发
 

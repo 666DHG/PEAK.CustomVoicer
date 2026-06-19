@@ -32,14 +32,17 @@ public static class VoicePlayback
             return;
         }
 
-        PlayLocalMonitor(character, entry.Clip, entry.Subtitle);
+        var localClip = entry.Clip;
+        var streamClip = entry.StreamClip ?? entry.Clip;
+
+        PlayLocalMonitor(character, localClip, entry.Subtitle);
 
         var streamed = CustomVoiceStreamer.Instance != null &&
-                       CustomVoiceStreamer.Instance.TryStream(character, entry.Clip, entry.Subtitle);
+                       CustomVoiceStreamer.Instance.TryStream(character, streamClip, entry.Subtitle);
 
         if (!streamed)
         {
-            Plugin.Log.LogDebug($"Played '{entry.Clip.name}' locally without Photon streaming.");
+            Plugin.Log.LogDebug($"Played '{localClip.name}' locally without Photon streaming.");
         }
     }
 

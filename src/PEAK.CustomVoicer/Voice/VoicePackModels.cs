@@ -32,4 +32,5 @@ public sealed class LoadedVoiceEntry
     public string Label { get; set; } = string.Empty;
     public string? Subtitle { get; set; }
     public UnityEngine.AudioClip? Clip { get; set; }
+    public UnityEngine.AudioClip? StreamClip { get; set; }
 }

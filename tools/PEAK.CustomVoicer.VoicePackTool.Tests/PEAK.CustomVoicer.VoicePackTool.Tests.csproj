@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\PEAK.CustomVoicer.VoicePackTool\PEAK.CustomVoicer.VoicePackTool.csproj" />
+    <Compile Include="..\..\src\PEAK.CustomVoicer\Voice\AudioNormalization.cs" Link="AudioNormalization.cs" />
   </ItemGroup>
 
 </Project>
