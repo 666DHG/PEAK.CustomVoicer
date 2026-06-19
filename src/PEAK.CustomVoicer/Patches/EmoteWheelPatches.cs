@@ -85,10 +85,10 @@ internal static class EmoteWheelInitWheelPatch
 
         var slices = __instance.slices;
         var data = __instance.data;
-        var pageField = AccessTools.Field(typeof(EmoteWheel), "page");
-        var page = pageField?.GetValue(__instance) is int currentPage ? currentPage : 0;
+        var page = VoiceWheelController.GetWheelPage(__instance);
         page = Mathf.Clamp(page, 0, Math.Max(0, __instance.pages - 1));
-        pageField?.SetValue(__instance, page);
+        VoiceWheelController.SetWheelPage(__instance, page);
+        VoiceWheelController.SaveVoicePage(__instance, page);
 
         for (var i = 0; i < slices.Length; i++)
         {

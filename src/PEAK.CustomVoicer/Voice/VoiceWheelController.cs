@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using HarmonyLib;
 using PEAK.CustomVoicer.Configuration;
 using PEAK.CustomVoicer.Voice;
 using UnityEngine;
@@ -8,13 +9,25 @@ namespace PEAK.CustomVoicer.Voice;
 
 public sealed class VoiceWheelController : MonoBehaviour
 {
+    public static VoiceWheelController? Instance { get; private set; }
+
+    private static readonly System.Reflection.FieldInfo? PageField =
+        AccessTools.Field(typeof(EmoteWheel), "page");
+
     private EmoteWheel? _emoteWheel;
     private WheelBackup? _backup;
+    private int _voicePage;
 
     private sealed class WheelBackup
     {
         public int Pages { get; set; }
+        public int Page { get; set; }
         public EmoteWheelData[] Data { get; set; } = Array.Empty<EmoteWheelData>();
+    }
+
+    private void Awake()
+    {
+        Instance = this;
     }
 
     private void Update()
@@ -200,15 +213,18 @@ public sealed class VoiceWheelController : MonoBehaviour
         _backup = new WheelBackup
         {
             Pages = _emoteWheel.pages,
+            Page = GetWheelPage(_emoteWheel),
             Data = _emoteWheel.data?.ToArray() ?? Array.Empty<EmoteWheelData>(),
         };
 
         var entries = VoicePackLoader.Instance.Entries;
         var pageCount = Math.Max(1, (entries.Count + VoiceWheelState.SlicesPerPage - 1) / VoiceWheelState.SlicesPerPage);
         var totalSlots = pageCount * VoiceWheelState.SlicesPerPage;
+        _voicePage = Mathf.Clamp(_voicePage, 0, pageCount - 1);
 
         _emoteWheel.pages = pageCount;
         _emoteWheel.data = new EmoteWheelData[totalSlots];
+        SetWheelPage(_emoteWheel, _voicePage);
 
         for (var i = 0; i < totalSlots; i++)
         {
@@ -235,7 +251,41 @@ public sealed class VoiceWheelController : MonoBehaviour
 
         _emoteWheel.pages = _backup.Pages;
         _emoteWheel.data = _backup.Data;
+        SetWheelPage(_emoteWheel, _backup.Page);
         _backup = null;
+    }
+
+    public static int GetWheelPage(EmoteWheel wheel)
+    {
+        return PageField?.GetValue(wheel) is int page ? page : 0;
+    }
+
+    public static void SetWheelPage(EmoteWheel wheel, int page)
+    {
+        PageField?.SetValue(wheel, page);
+    }
+
+    public static int GetVoicePage(EmoteWheel wheel)
+    {
+        var controller = FindControllerFor(wheel);
+        return controller?._voicePage ?? 0;
+    }
+
+    public static void SaveVoicePage(EmoteWheel wheel, int page)
+    {
+        var controller = FindControllerFor(wheel);
+        if (controller == null)
+        {
+            return;
+        }
+
+        controller._voicePage = Mathf.Clamp(page, 0, Math.Max(0, wheel.pages - 1));
+    }
+
+    private static VoiceWheelController? FindControllerFor(EmoteWheel wheel)
+    {
+        var controller = Instance;
+        return controller != null && controller._emoteWheel == wheel ? controller : null;
     }
 
     private void RestoreWheelUi()
